@@ -8,7 +8,8 @@ module MEM(
     input wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus,
     input wire [31:0] data_sram_rdata,
 
-    output wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus
+    output wire [`MEM_TO_WB_WD-1:0] mem_to_wb_bus,
+    output wire [`MEM_TO_RF_WD-1:0] mem_to_rf_bus
 );
 
     reg [`EX_TO_MEM_WD-1:0] ex_to_mem_bus_r;
@@ -31,14 +32,18 @@ module MEM(
     wire [31:0] mem_pc;
     wire data_ram_en;
     wire [3:0] data_ram_wen;
+    wire [3:0] data_ram_sel;
     wire sel_rf_res;
     wire rf_we;
     wire [4:0] rf_waddr;
     wire [31:0] rf_wdata;
     wire [31:0] ex_result;
     wire [31:0] mem_result;
+    wire mem_op;
 
     assign {
+        mem_op,
+        data_ram_sel,
         mem_pc,         // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39
@@ -48,9 +53,9 @@ module MEM(
         ex_result       // 31:0
     } =  ex_to_mem_bus_r;
 
+    assign mem_result = data_sram_rdata; 
 
-
-    assign rf_wdata = sel_rf_res ? mem_result : ex_result;
+    assign rf_wdata = sel_rf_res & data_ram_en? mem_result : ex_result;
 
     assign mem_to_wb_bus = {
         mem_pc,     // 69:38
@@ -59,7 +64,11 @@ module MEM(
         rf_wdata    // 31:0
     };
 
-
+    assign mem_to_rf_bus={
+        rf_we,
+        rf_waddr,
+        rf_wdata
+    };
 
 
 endmodule
