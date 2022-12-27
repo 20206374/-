@@ -7,7 +7,11 @@ module EX(
 
     input wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
+    output wire stallreq_for_ex,
+
     output wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus,
+
+    output wire [`EX_TO_RF_WD-1:0] ex_to_rf_bus,
 
     output wire data_sram_en,
     output wire [3:0] data_sram_wen,
@@ -38,6 +42,7 @@ module EX(
     wire [3:0] sel_alu_src2;
     wire data_ram_en;
     wire [3:0] data_ram_wen;
+    wire [3:0] data_ram_sel;
     wire rf_we;
     wire [4:0] rf_waddr;
     wire sel_rf_res;
@@ -45,6 +50,7 @@ module EX(
     reg is_in_delayslot;
 
     assign {
+        mem_op,
         ex_pc,          // 148:117
         inst,           // 116:85
         alu_op,         // 84:83
@@ -80,10 +86,26 @@ module EX(
         .alu_src2    (alu_src2    ),
         .alu_result  (alu_result  )
     );
-
     assign ex_result = alu_result;
 
+
+    wire inst_sw,inst_lw;
+
+    assign{inst_sw,inst_lw}=mem_op;
+
+    wire [3:0] byte_sel;
+
+    assign data_ram_sel =4'b1111;
+
+    assign data_sram_en     = data_ram_en;
+    assign data_sram_wen    = {4{data_ram_wen}}&data_ram_sel;
+    assign data_sram_addr   = ex_result; 
+    assign data_sram_wdata  = rf_rdata2;
+
+
     assign ex_to_mem_bus = {
+        mem_op,         // 79
+        data_ram_sel,   // 78:76
         ex_pc,          // 75:44
         data_ram_en,    // 43
         data_ram_wen,   // 42:39
@@ -198,6 +220,11 @@ module EX(
     end
 
     // mul_result 和 div_result 可以直接使用
+    assign ex_to_rf_bus={
+        rf_we,
+        rf_waddr,
+        ex_result
+    };
     
     
 endmodule
